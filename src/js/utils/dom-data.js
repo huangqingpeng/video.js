@@ -23,7 +23,7 @@ export const elData = {};
  * @constant
  * @private
  */
-const elIdAttr = 'vdata' + (new Date()).getTime();
+export const elIdAttr = 'vdata' + (new Date()).getTime();
 
 /**
  * Returns the cache object where data for an element is stored
