@@ -73,6 +73,9 @@ class ResizeManager extends Component {
         }
 
         this.unloadListener_ = () => {
+          if (!this.el_ || !this.el_.contentWindow) {
+            return;
+          }
           Events.off(this.el_.contentWindow, 'resize', this.debouncedHandler_);
           Events.off(this.el_.contentWindow, 'unload', this.unloadListener_);
           this.unloadListener_ = null;
