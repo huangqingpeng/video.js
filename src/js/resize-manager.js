@@ -3,7 +3,6 @@
  */
 import window from 'global/window';
 import { debounce } from './utils/fn.js';
-import * as DomData from './utils/dom-data.js';
 import * as Events from './utils/events.js';
 import mergeOptions from './utils/merge-options.js';
 import Component from './component.js';
@@ -73,12 +72,16 @@ class ResizeManager extends Component {
           return;
         }
 
-        Events.on(this.el_.contentWindow, 'resize', this.debouncedHandler_);
+        this.unloadListener_ = () => {
+          Events.off(this.el_.contentWindow, 'resize', this.debouncedHandler_);
+          Events.off(this.el_.contentWindow, 'unload', this.unloadListener_);
+          this.unloadListener_ = null;
+        };
 
-        // we have to save the guid just in case the contentWindow
-        // disappears (safari does this). So that we can still cleanup
-        // the event handlers in DomData.
-        this.contentWindowGuid_ = this.el_.contentWindow[DomData.elIdAttr];
+        Events.on(this.el_.contentWindow, 'resize', this.debouncedHandler_);
+        // safari and edge can unload the iframe before resizemanager dispose
+        // we have to dispose of event handlers correctly before that happens
+        Events.on(this.el_.contentWindow, 'unload', this.unloadListener_);
       };
 
       this.on('load', this.loadListener_);
@@ -127,19 +130,8 @@ class ResizeManager extends Component {
       this.resizeObserver_.disconnect();
     }
 
-    if (this.el_ && this.el_.contentWindow) {
-      Events.off(this.el_.contentWindow, 'resize', this.debouncedHandler_);
-    } else if (this.contentWindowGuid_) {
-      const obj = {};
-
-      obj[DomData.elIdAttr] = this.contentWindowGuid_;
-      Events.off(obj, 'resize', this.debouncedHandler_);
-
-      this.contentWindowGuid_ = null;
-    }
-
-    if (this.loadListener_) {
-      this.off('load', this.loadListener_);
+    if (this.unloadListener_) {
+      this.unloadListener_();
     }
 
     this.ResizeObserver = null;
